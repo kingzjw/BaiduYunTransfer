@@ -348,8 +348,8 @@ class BaiduYunTransfer:
 if __name__ == '__main__':
     api_key = 'gmz5A6CU6CaOWMhvXAiKXbiNWtrLxNiS'                                            # 按照https://pan.baidu.com/union/document/entrance#%E7%AE%80%E4%BB%8B 的指引，申请api_key和secret_key。
     secret_key = 'oFARKWWbSdnNMZ9K1XZAMPY55Vkd0xkO'                                 # 这里默认是我申请的api_key和secret_key，仅作测试使用。出于安全和QPS的考量，我推荐你去申请自己的api_key和secret_key。
-    share_link = 'https://pan.baidu.com/s/1FrZlXABn_iJbVTGdwehtFA'                  # 分享链接
+    share_link = ' https://pan.baidu.com/s/14mMsdVF_Pdacfu11pn5eTQ'                  # 分享链接
     #share_link = 'https://pan.baidu.com/share/init?surl=9PsW5sWFLdbR7eHZbnHelw'    # 分享链接，以上两种形式的链接都可以
-    password = 'vuk6'                                                               # 分享提取码
-    folderpath = '/转存测试'                                                               # 转存路径，根路径为/
+    password = '6hey'                                                               # 分享提取码
+    folderpath = '/安装包大全'                                                               # 转存路径，根路径为/
     BaiduYunTransfer(api_key, secret_key, share_link, password, folderpath)
