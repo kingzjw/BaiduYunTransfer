@@ -345,11 +345,35 @@ class BaiduYunTransfer:
         # 转存成功后再次转存到同一文件夹下时返回errno=12，批量操作失败，如：{"errno":12,"task_id":0,"info":[{"path":"\/doax","errno":-30,"fsid":557084550688759}]}
 
 
+
+def parseLine(str):
+    str  = str.rstrip()
+    indexStart = str.find("https")
+    if(indexStart ==-1):
+        return;
+    indexEnd = str.find(" ", indexStart);
+    url = str[indexStart:indexEnd]
+    scert = str[len(str) -4:]
+
+    
+    # url = ' https://pan.baidu.com/s/14mMsdVF_Pdacfu11pn5eTQ'
+    # scert = '6hey'
+    BaiduYunTransfer(api_key, secret_key, url, scert, folderpath)
+
+
 if __name__ == '__main__':
-    api_key = 'gmz5A6CU6CaOWMhvXAiKXbiNWtrLxNiS'                                            # 按照https://pan.baidu.com/union/document/entrance#%E7%AE%80%E4%BB%8B 的指引，申请api_key和secret_key。
-    secret_key = 'oFARKWWbSdnNMZ9K1XZAMPY55Vkd0xkO'                                 # 这里默认是我申请的api_key和secret_key，仅作测试使用。出于安全和QPS的考量，我推荐你去申请自己的api_key和secret_key。
-    share_link = ' https://pan.baidu.com/s/14mMsdVF_Pdacfu11pn5eTQ'                  # 分享链接
-    #share_link = 'https://pan.baidu.com/share/init?surl=9PsW5sWFLdbR7eHZbnHelw'    # 分享链接，以上两种形式的链接都可以
-    password = '6hey'                                                               # 分享提取码
-    folderpath = '/安装包大全'                                                               # 转存路径，根路径为/
-    BaiduYunTransfer(api_key, secret_key, share_link, password, folderpath)
+
+    api_key = 'gmz5A6CU6CaOWMhvXAiKXbiNWtrLxNiS'
+    secret_key = 'oFARKWWbSdnNMZ9K1XZAMPY55Vkd0xkO'
+    folderpath = '/安装包大全'
+
+    f = open("list.txt",encoding='utf-8')
+    while True:
+        line = f.readline()
+        if line:
+            parseLine(line);
+        else:
+            break
+    f.close()
+    print("ok")
+    
