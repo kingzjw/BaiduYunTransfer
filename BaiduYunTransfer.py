@@ -1,9 +1,7 @@
 import requests, re, urllib, os, time
-
-
 class BaiduYunTransfer:
 
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36',
             'Referer': 'pan.baidu.com'}
     
     universal_error_code = {'2': '参数错误。检查必填字段；get/post 参数位置',
@@ -19,15 +17,16 @@ class BaiduYunTransfer:
                             '9500': '五级封禁'}
 
 
-    def __init__(self, api_key, secret_key, share_link, password, dir):
+    def __init__(self, api_key, secret_key, share_link, password, folderpath):
         self.api_key = api_key
         self.secret_key = secret_key
         self.share_link = share_link
         self.password = password
-        self.dir = dir
+        self.folderpath = folderpath
 
         if self.init_token() and self.get_surl() and self.get_sekey() and self.get_shareid_and_uk_and_fsidlist():
-            self.file_transfer()
+             self.mkdir()
+             self.file_transfer()
 
 
     def apply_for_token(self):
@@ -152,7 +151,35 @@ class BaiduYunTransfer:
         print('refresh_token:', self.refresh_token)
         return True
 
+    def mkdir(self):
+        '''
+        创建文件夹。
+        https://pan.baidu.com/union/document/basic#%E5%88%9B%E5%BB%BA%E6%96%87%E4%BB%B6
+        '''
+        url = 'https://pan.baidu.com/rest/2.0/xpan/file?method=create'
+        params = {'method':'create', 'access_token': self.access_token}
+        data = {'size': 0, 'isdir': 1, 'path': self.folderpath, 'rtype': 0}
+        res = requests.post(url, headers = self.headers, params = params, data = data)
+        res_json = res.json()
+        errno = res_json['errno']
+        if errno == 0:
+            print('文件夹创建成功')
+            return True
+        # 使用rtype参数检验文件夹是否存在.rtype值为0不允许同名文件夹重命名，重名时返回错误代码-8;为1则时允许。
+        elif errno == -8:
+            print('文件夹已存在，不再创建')
+            return True  
+        else:
+            error = {'-7': '目录名错误或无权访问'}
+            error.update(self.universal_error_code)
 
+            if str(errno) in error:
+                print('文件夹创建失败，错误码：{}，错误：{}\n返回JSON：{}'.format(errno, error[str(errno)], res_json))
+            else:
+                print('文件夹创建失败，错误码：{}，错误未知，请尝试查询https://pan.baidu.com/union/document/error\n返回JSON：{}'.format(errno, res_json))
+
+            return False
+        
     def get_surl(self):
         '''
         获取surl。举个例子：
@@ -178,21 +205,14 @@ class BaiduYunTransfer:
             link = reditList[len(reditList)-1].headers["location"]      # 302跳转的最后一跳的url
             print('long_link:', link)
 
-
-            # self.surl = 'https://pan.baidu.com' + link
-            # self.surl = link
-            self.surl = '1FrZlXABn_iJbVTGdwehtFA'
-            print('surl:', self.surl)
-            return True
-
-            # res = re.search(r'https://pan\.baidu\.com/share/init\?surl=([0-9a-zA-Z].+?)$', link)
-            # if res:
-            #     self.surl = res.group(1)
-            #     print('surl:', self.surl)
-            #     return True
-            # else:
-            #     print('获取surl失败')
-            #     return False
+            res = re.search(r'share/init\?surl=([0-9a-zA-Z].+?)$', link)
+            if res:
+                self.surl = res.group(1)
+                print('surl:', self.surl)
+                return True
+            else:
+                print('获取surl失败')
+                return False
 
 
     def get_sekey(self):
@@ -294,7 +314,7 @@ class BaiduYunTransfer:
         '''
         url = 'http://pan.baidu.com/rest/2.0/xpan/share?method=transfer'
         params = {'access_token': self.access_token, 'shareid': self.shareid, 'from': self.uk,}
-        data = {'sekey': self.sekey, 'fsidlist': str(self.fsid_list), 'path': self.dir}
+        data = {'sekey': self.sekey, 'fsidlist': str(self.fsid_list), 'path': self.folderpath}
         res = requests.post(url, headers = self.headers, params = params, data = data)
 
         res_json = res.json()
@@ -307,7 +327,7 @@ class BaiduYunTransfer:
                     '120': '非会员用户达到转存文件数目上限',
                     '130': '达到高级会员转存上限',
                     '-33': '达到转存文件数目上限',
-                    '12': '批量操作失败',
+                    '12': '批量操作失败，建议检查是否重复转存',
                     '-3': '转存文件不存在',
                     '-9': '密码错误',
                     '5': '分享文件夹等禁止文件'}
@@ -329,9 +349,7 @@ if __name__ == '__main__':
     api_key = 'gmz5A6CU6CaOWMhvXAiKXbiNWtrLxNiS'                                            # 按照https://pan.baidu.com/union/document/entrance#%E7%AE%80%E4%BB%8B 的指引，申请api_key和secret_key。
     secret_key = 'oFARKWWbSdnNMZ9K1XZAMPY55Vkd0xkO'                                 # 这里默认是我申请的api_key和secret_key，仅作测试使用。出于安全和QPS的考量，我推荐你去申请自己的api_key和secret_key。
     share_link = 'https://pan.baidu.com/s/1FrZlXABn_iJbVTGdwehtFA'                  # 分享链接
+    #share_link = 'https://pan.baidu.com/share/init?surl=9PsW5sWFLdbR7eHZbnHelw'    # 分享链接，以上两种形式的链接都可以
     password = 'vuk6'                                                               # 分享提取码
-    dir = '/test'                                                               # 转存路径，根路径为/
-    BaiduYunTransfer(api_key, secret_key, share_link, password, dir)
-
-
-    # 链接:  提取码:  复制这段内容后打开百度网盘手机App，操作更方便哦
+    folderpath = '/转存测试'                                                               # 转存路径，根路径为/
+    BaiduYunTransfer(api_key, secret_key, share_link, password, folderpath)
